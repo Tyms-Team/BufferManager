@@ -5,5 +5,6 @@ package buffermanager;
  * @author Tyler
  */
 abstract public class Record{
-    //This is just for genericizing the things, it doesn't actually do anything.
+    //This is just for generalizing the things, it doesn't actually do anything.
+	public static final String fname="";
 }

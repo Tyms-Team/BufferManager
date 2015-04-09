@@ -5,8 +5,10 @@ package buffermanager;
  * @author Tyler
  */
 public class Employee extends Record implements Comparable<Employee>{
-    private int ID;
+    private Integer ID;
     private String name;
+    
+    public static final String fname = "employee.txt";
     
     public Employee(int startID, String startName){
         setID(startID);
