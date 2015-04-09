@@ -1,0 +1,12 @@
+1,Math
+2,Did you hear about the losers in the math department?
+3,No I didn't why don't you tell me all about it English
+4,Alright come on now there's no need for that kind of animosity
+5,You know we're not the English department
+6,I mean the math department is sick
+7,But at least it isn't *that* sick
+8,Aren't these titles supposed to be less than fifteen characters?
+9,Oh yeah...that's a thing
+0,Good job Math department you're supposed to be on top of the number stuff
+21,Now there not even in order
+22,...Sorry Physics
