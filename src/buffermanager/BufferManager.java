@@ -130,51 +130,67 @@ public class BufferManager {
     	return tokens;
     }
     
+    /**
+     * Opens a scanner from the indicated table, whether it's from a file or a join.
+     * @param fromString queryFrom(query);
+     * @return Scanner over the tuples in the correct table. That may be on a file or a string.
+     */
     public static Scanner openFile(String[] fromString){
-    	Scanner r = null;
-    	String s="";
-    	int state=0;
+    	Scanner r = null; //Return Scanner
     	
     	for (String file: fromString){
-    		switch (file){
-    		case "":
-    			break;
-    		case "employee":
-    			try{
-    				r = new Scanner(new File(Employee.fname));
-    			} catch (Exception e){
-    				System.err.printf("Don't delete %s.\n",Employee.fname);
-    			}
-    			break;
-    		case "department":
-    			try {
-					r = new Scanner(new File(Department.fname));
-				}  catch (Exception e){
-					System.err.printf("Don't delete %s.\n",Department.fname);
-    			}
-    			break;
-    		case "employeedepartmnet":
-    			try {
-					r = new Scanner(new File(EmployeeDepartment.fname));
-				} catch (FileNotFoundException e) {
-					System.err.printf("Don't delete %s.\n",EmployeeDepartment.fname);
-				}
-    			break;
-    		case "natural":
-    			state=1;
-    			break;
-    		case "outer":
-    			state=2;
-    			break;
-    		case "inner":
-    			state=3;
-    			break;
-    		case "join":
-    			break;
-			default:
-                            System.err.printf("Syntax error in FROM statement\n");
-                            System.exit(2);
-    		}
+            switch (file){
+            case "": 
+                //Empty string, do nothing.
+                break;
+            case "employee": //Open a scanner on the employee file
+                try{
+                    r = new Scanner(new File(Employee.fname)); //Open the scanner on employee.txt
+                } catch (Exception e){
+                    System.err.printf("Don't delete %s.\n",Employee.fname); //Someone deleted employee.txt
+                }
+                break;
+            case "department": //Very similar to above.
+                try {
+                    r = new Scanner(new File(Department.fname));
+                }  catch (Exception e){
+                    System.err.printf("Don't delete %s.\n",Department.fname);
+                }
+                break;
+            case "employee_department": //Again, very similar
+                try {
+                    r = new Scanner(new File(EmployeeDepartment.fname));
+                } catch (FileNotFoundException e) { //For some reason I decided to not use the generic exception. Weird.
+                    System.err.printf("Don't delete %s.\n",EmployeeDepartment.fname);
+                }
+                break;
+
+            //TO DO: Join statement stuff.
+            case "natural":
+                //I'm thinking use these three to figure out what kind of join we're doing. Save it to a state variable outside the for loop
+                break;
+            case "outer":
+                break;
+            case "inner":
+                break;
+            case "join":
+                //Do the join by:
+                //For each line in scanner r:
+                //Open a new Scanner on the next file
+                //Combine the line in r with each line in the new Scanner according to the join type
+                //Save the combination to a string
+                //End loop
+                //r=new Scanner(save string);
+
+                //You'll have to figure out how to get what the next file is. We'll assume no nested queries for now, though.
+
+
+                //Alternatively, you could do the additions in the employee/department/employee-department cases, using this as another state to tell when to join and when to open new. Might be easier.
+                break;
+            default:
+                System.err.printf("Syntax error in FROM statement\n");
+                System.exit(2);
+            }
     	}
     	
     	if (r==null){
