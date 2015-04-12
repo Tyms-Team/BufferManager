@@ -30,7 +30,7 @@ public class BufferManager {
         Scanner objectIn=openFile(sList);
     	
     	sList = queryWhere(query);
-    	
+                
         String[] projectionList = querySelect(query);
         
         printBoxHeader(projectionList);
@@ -123,7 +123,8 @@ public class BufferManager {
     	
     	//System.out.println("theQuery = " + theQuery);
     	
-    	String delims = "[ ;]\\s*|\\b";
+    	//String delims = "[ ;]\\s*|\\b";
+        String delims = "\\s+|;\\s*|(?<=[a-z])(?=[<>=])|(?<=[<>=])(?=(?:\"|\\d))|(?=&&)|(?=\\|\\|)"; //This got a lot more complicated, whoops
         String[] tokens = theQuery.split(delims);
         
     	return tokens;
@@ -171,14 +172,14 @@ public class BufferManager {
     		case "join":
     			break;
 			default:
-				System.err.printf("Syntax error in FROM statement\n");
-				System.exit(2);
+                            System.err.printf("Syntax error in FROM statement\n");
+                            System.exit(2);
     		}
     	}
     	
     	if (r==null){
-    		System.err.printf("Syntax error in FROM statement\n");
-    		System.exit(2);
+            System.err.printf("Syntax error in FROM statement\n");
+            System.exit(2);
     	}
     	
     	return r;
@@ -202,15 +203,15 @@ public class BufferManager {
             }
             //else if (s.matches("^(?:employee|department)\\.id$|^employeedepartment\\.employee_id$")){
             else if (s.matches("^id$|^employee_id$")){
-                lvalue=tuple.substring(0,tuple.indexOf(','));
+                lvalue=tuple.substring(0,tuple.indexOf(',')).toLowerCase();
             }
             else if (s.matches("^name$|^dept_id$")){
-                lvalue=tuple.substring(tuple.indexOf(',')+1);
+                lvalue=tuple.substring(tuple.indexOf(',')+1).toLowerCase();
             }
             else {
                 int compvalue;
                 //Figure out the comparison value
-                if (s.matches("^\".*\"$")){
+                if (s.matches("\".*\"")){
                     s=s.substring(1,s.length()-1);
                     compvalue = lvalue.compareTo(s);
                 }
@@ -226,13 +227,13 @@ public class BufferManager {
                 
                 //Figure out if the comparison value is part of the operator
                 boolean sr;
-                if (compvalue<0 && op.matches("<")){
+                if (compvalue<0 && op.indexOf('<')!=-1){
                     sr=true;
                 }
-                else if (compvalue==0 && op.equals("=")){
+                else if (compvalue==0 && op.indexOf('=')!=-1){
                     sr=true;
                 }
-                else if (compvalue>0 && op.matches(">")){
+                else if (compvalue>0 && op.indexOf('>')!=-1){
                     sr=true;
                 }
                 else{
