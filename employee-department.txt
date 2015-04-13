@@ -1,4 +1,4 @@
-eid,did
+employee_department.eid,employee_department.did
 10,1
 11,2
 12,4

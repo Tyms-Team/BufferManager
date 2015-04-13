@@ -21,7 +21,7 @@ public class BufferManager {
     private static int bufferCount=0;
     private static int bufferSize=0;
     
-    public static void main(String[] args) throws FileNotFoundException {
+    public static void main(String[] args){
     	Scanner in=init(args);
     	String query = in.nextLine();
     	
@@ -140,10 +140,9 @@ public class BufferManager {
      * @throws FileNotFoundException 
      */
     //@SuppressWarnings("resource")
-	public static Scanner openFile(String[] fromString) throws FileNotFoundException{
+	public static Scanner openFile(String[] fromString){
     	Scanner r = null; //Return Scanner
     	int state = 0;
-    	String saveString = "";
     	Scanner s = null;
     	for (String file: fromString){
             switch (file){
@@ -222,19 +221,6 @@ public class BufferManager {
                     System.err.printf("Don't delete %s.\n",EmployeeDepartment.fname);
                 }
                 break;
-            
-            //TO DO: Join statement stuff.
-            case "natural":
-                //I'm thinking use these three to figure out what kind of join we're doing. 
-            	//Save it to a state variable outside the for loop
-                state = 1;
-            	break;
-            case "outer":
-            	state = 2;
-                break;
-            case "inner":
-            	state = 3;
-                break;
             case "join":
             	state = 0;
             	break;
@@ -258,23 +244,10 @@ public class BufferManager {
     		// JOIN
     		rline += ',' + sline + '\n';
     		break;
-    	case 1:
-    		// NATURAL 
-    		
-    		break;
-    	case 2:
-    		// OUTER
-    		
-    		break;
-    	case 3:
-    		// INNER
-    		
-    		break;
     	default:
     		System.err.println("There's a problem in from statement.");
     		System.exit(2);
     	}
-    	//System.out.println(rline);
 		return rline;
 	}
 

@@ -1,4 +1,4 @@
-did,name
+department.did,department.name
 1,Math
 2,Did you hear a
 3,No I didn't wh
