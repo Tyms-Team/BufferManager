@@ -176,13 +176,15 @@ public class BufferManager {
                 break;
             case "department": //Very similar to above.
                 try {
-                	System.out.println("We are in department");
                 	if(r == null){
                 		r = new Scanner(new File(Department.fname)); //Open the scanner on employee.txt
                 	}else{
-                		String w = "";
+                		String w = r.nextLine();
+                		s = new Scanner(new File(Department.fname));
+                		w += ',' + s.nextLine() + '\n';
                 		while (r.hasNext()){
                 			s = new Scanner(new File(Department.fname));
+                			s.nextLine();
                 			String rline = r.nextLine();
                 			while(s.hasNext()){
                 				String sline = s.nextLine();
@@ -198,13 +200,15 @@ public class BufferManager {
                 break;
             case "employee_department": //Again, very similar
                 try {
-                	System.out.println("We are in employee_department");
                 	if(r == null){
                 		r = new Scanner(new File(EmployeeDepartment.fname)); //Open the scanner on employee.txt
                 	}else{
-                		String w = "";
+                		String w = r.nextLine();
+                		s = new Scanner(new File(EmployeeDepartment.fname));
+                		w += ',' + s.nextLine() + '\n';
                 		while (r.hasNext()){
                 			s = new Scanner(new File(EmployeeDepartment.fname));
+                			s.nextLine();
                 			String rline = r.nextLine();
                 			while(s.hasNext()){
                 				String sline = s.nextLine();
@@ -252,10 +256,10 @@ public class BufferManager {
     	switch(state){
     	case 0:
     		// JOIN
-    			rline += ',' + sline + '\n';
+    		rline += ',' + sline + '\n';
     		break;
     	case 1:
-    		// NATURAL
+    		// NATURAL 
     		
     		break;
     	case 2:
