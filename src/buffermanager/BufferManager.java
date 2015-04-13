@@ -21,7 +21,7 @@ public class BufferManager {
     private static int bufferCount=0;
     private static int bufferSize=0;
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException {
     	Scanner in=init(args);
     	String query = in.nextLine();
     	
@@ -32,6 +32,10 @@ public class BufferManager {
     	sList = queryWhere(query);
                 
         String[] projectionList = querySelect(query);
+        
+        while (objectIn.hasNext()){
+        	System.out.println(objectIn.nextLine());
+        }
         
         printBoxHeader(projectionList);
     	while (objectIn.hasNext()){
@@ -70,7 +74,6 @@ public class BufferManager {
     		System.err.println("Usage: java BufferManager <buffer size> [query filename]");
     		System.exit(1);
     	}
-    	
     	return in;
     }
     
@@ -134,10 +137,14 @@ public class BufferManager {
      * Opens a scanner from the indicated table, whether it's from a file or a join.
      * @param fromString queryFrom(query);
      * @return Scanner over the tuples in the correct table. That may be on a file or a string.
+     * @throws FileNotFoundException 
      */
-    public static Scanner openFile(String[] fromString){
+    //@SuppressWarnings("resource")
+	public static Scanner openFile(String[] fromString) throws FileNotFoundException{
     	Scanner r = null; //Return Scanner
-    	
+    	int state = 0;
+    	String saveString = "";
+    	Scanner s = null;
     	for (String file: fromString){
             switch (file){
             case "": 
@@ -145,48 +152,88 @@ public class BufferManager {
                 break;
             case "employee": //Open a scanner on the employee file
                 try{
-                    r = new Scanner(new File(Employee.fname)); //Open the scanner on employee.txt
+                	if(r == null){
+                		r = new Scanner(new File(Employee.fname)); //Open the scanner on employee.txt
+                	}else{
+                		String w = r.nextLine();
+                		s = new Scanner(new File(Employee.fname));
+                		w += ',' + s.nextLine() + '\n';
+                		while (r.hasNext()){
+                			s = new Scanner(new File(Employee.fname));
+                			s.nextLine();
+                			String rline = r.nextLine();
+                			while(s.hasNext()){
+                				String sline = s.nextLine();
+                				w += join(rline,sline,state);
+                			}
+                			//r = new Scanner(w);
+                		}
+                		r = new Scanner(w);
+                	}
                 } catch (Exception e){
                     System.err.printf("Don't delete %s.\n",Employee.fname); //Someone deleted employee.txt
                 }
                 break;
             case "department": //Very similar to above.
                 try {
-                    r = new Scanner(new File(Department.fname));
+                	System.out.println("We are in department");
+                	if(r == null){
+                		r = new Scanner(new File(Department.fname)); //Open the scanner on employee.txt
+                	}else{
+                		String w = "";
+                		while (r.hasNext()){
+                			s = new Scanner(new File(Department.fname));
+                			String rline = r.nextLine();
+                			while(s.hasNext()){
+                				String sline = s.nextLine();
+                				w += join(rline,sline,state);
+                			}
+                			//r = new Scanner(w);
+                		}
+                		r = new Scanner(w);
+                	}
                 }  catch (Exception e){
                     System.err.printf("Don't delete %s.\n",Department.fname);
                 }
                 break;
             case "employee_department": //Again, very similar
                 try {
-                    r = new Scanner(new File(EmployeeDepartment.fname));
+                	System.out.println("We are in employee_department");
+                	if(r == null){
+                		r = new Scanner(new File(EmployeeDepartment.fname)); //Open the scanner on employee.txt
+                	}else{
+                		String w = "";
+                		while (r.hasNext()){
+                			s = new Scanner(new File(EmployeeDepartment.fname));
+                			String rline = r.nextLine();
+                			while(s.hasNext()){
+                				String sline = s.nextLine();
+                				w += join(rline,sline,state);
+                			}
+                			//r = new Scanner(w);
+                		}
+                		r = new Scanner(w);
+                	}
                 } catch (FileNotFoundException e) { //For some reason I decided to not use the generic exception. Weird.
                     System.err.printf("Don't delete %s.\n",EmployeeDepartment.fname);
                 }
                 break;
-
+            
             //TO DO: Join statement stuff.
             case "natural":
-                //I'm thinking use these three to figure out what kind of join we're doing. Save it to a state variable outside the for loop
-                break;
+                //I'm thinking use these three to figure out what kind of join we're doing. 
+            	//Save it to a state variable outside the for loop
+                state = 1;
+            	break;
             case "outer":
+            	state = 2;
                 break;
             case "inner":
+            	state = 3;
                 break;
             case "join":
-                //Do the join by:
-                //For each line in scanner r:
-                //Open a new Scanner on the next file
-                //Combine the line in r with each line in the new Scanner according to the join type
-                //Save the combination to a string
-                //End loop
-                //r=new Scanner(save string);
-
-                //You'll have to figure out how to get what the next file is. We'll assume no nested queries for now, though.
-
-
-                //Alternatively, you could do the additions in the employee/department/employee-department cases, using this as another state to tell when to join and when to open new. Might be easier.
-                break;
+            	state = 0;
+            	break;
             default:
                 System.err.printf("Syntax error in FROM statement\n");
                 System.exit(2);
@@ -201,7 +248,33 @@ public class BufferManager {
     	return r;
     }
     
-    public static boolean passesCheck(String tuple,String[] checkRules){
+    private static String join(String rline, String sline, int state) {
+    	switch(state){
+    	case 0:
+    		// JOIN
+    			rline += ',' + sline + '\n';
+    		break;
+    	case 1:
+    		// NATURAL
+    		
+    		break;
+    	case 2:
+    		// OUTER
+    		
+    		break;
+    	case 3:
+    		// INNER
+    		
+    		break;
+    	default:
+    		System.err.println("There's a problem in from statement.");
+    		System.exit(2);
+    	}
+    	//System.out.println(rline);
+		return rline;
+	}
+
+	public static boolean passesCheck(String tuple,String[] checkRules){
         boolean r=false;
         String lvalue=null;
         String op=null;
