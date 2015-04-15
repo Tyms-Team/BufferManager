@@ -6,6 +6,8 @@ import java.util.StringTokenizer;
 import java.io.FileWriter;
 
 import com.sun.xml.internal.ws.util.StringUtils;
+import java.util.NoSuchElementException;
+import java.util.TreeMap;
 
 /**
  *
@@ -17,12 +19,13 @@ public class BufferManager {
      * @param args the command line arguments
      */
     
-    private static SplayBST<Integer,Record> buffer; 
     private static int bufferCount=0;
     private static int bufferSize=0;
+    private static TreeMap[] buffer;
+    private static boolean[] notChecked;
     
     public static void main(String[] args){
-    	Scanner in=init(args);
+        Scanner in=init(args);
     	String query = in.nextLine();
     	
     	String[] sList = queryFrom(query);
@@ -33,18 +36,7 @@ public class BufferManager {
                 
         String[] projectionList = querySelect(query);
         
-        while (objectIn.hasNext()){
-        	System.out.println(objectIn.nextLine());
-        }
-        
-        printBoxHeader(projectionList);
-    	while (objectIn.hasNext()){
-            String tuple=objectIn.nextLine();
-            if (passesCheck(tuple,sList)){
-                printBoxLine(projectionList,tuple);
-            }
-    	}
-        printBoxFooter(projectionList);
+        processQuery(projectionList,objectIn,sList);
     }
     
     /**
@@ -54,12 +46,15 @@ public class BufferManager {
      */
     private static Scanner init(String[] args){
     	Scanner in = new Scanner(System.in);
+        
     	try{
 	    	if (args.length<1){ //No arguments
 	    		throw new Exception(); //Tell user usage and exit
 	    	}
 	    	else if (args.length<3){ //1 or 2 arguments
 	    		bufferSize=Integer.parseInt(args[0]); //Set buffer size. If args[0] is not an int, exit
+                        buffer = new TreeMap[bufferSize];
+                        notChecked = new boolean[bufferSize];
 	    		if (args.length==2)
 	    			in = new Scanner( new File(args[1]) ); //Create Scanner for file
 	    	}
@@ -251,11 +246,13 @@ public class BufferManager {
 		return rline;
 	}
 
-	public static boolean passesCheck(String tuple,String[] checkRules){
+    public static boolean passesCheck(TreeMap<String,String> tuple,String[] checkRules){
         boolean r=false;
         String lvalue=null;
         String op=null;
         String boolOp=null;
+        
+        
         
         for (String s: checkRules){
             if (s.equals("")){
@@ -268,11 +265,8 @@ public class BufferManager {
                 op=s;
             }
             //else if (s.matches("^(?:employee|department)\\.id$|^employeedepartment\\.employee_id$")){
-            else if (s.matches("^id$|^employee_id$")){
-                lvalue=tuple.substring(0,tuple.indexOf(',')).toLowerCase();
-            }
-            else if (s.matches("^name$|^dept_id$")){
-                lvalue=tuple.substring(tuple.indexOf(',')+1).toLowerCase();
+            else if (tuple.keySet().contains(s)){
+                lvalue=tuple.get(s);
             }
             else {
                 int compvalue;
@@ -286,6 +280,8 @@ public class BufferManager {
                     Integer j=Integer.parseInt(s);
                     
                     compvalue=i.compareTo(j);
+                    
+                    //System.out.printf("%s%s%s => %d",lvalue,op,s,compvalue);
                 }
                 else{
                     return false;
@@ -392,53 +388,89 @@ public class BufferManager {
         System.out.println();
     }
 
-    private static void printBoxLine(String[] projectionList, String tuple) {
+    private static void printBoxLine(String[] projectionList, TreeMap<String,String> tuple) {
         boolean printfinal=true;
         System.out.print('|');
         
-        for (String s: projectionList){
+        for (String s:projectionList){
+            if (s.equals(""))
+                continue;
+            String value = tuple.get(s);
+            
             int end;
-            switch (s){
-                case "":
-                    break;
-                case "id":
-                case "employee_id":
-                    s=tuple.substring(0,tuple.indexOf(','));
-                    end=(15-s.length())>>1;
-                    for (int i=0;i<end;i++){
-                        System.out.print(' ');
-                    }
-                    System.out.print(s);
-                    
-                    end=end-1*((s.length()%2==1)?1:0);
-                    for (int i=0;i<end;i++){
-                        System.out.print(' ');
-                    }
-                    System.out.print('|');
-                    printfinal=false;
-                    break;
-                case "name":
-                case "dept_id":
-                    s=tuple.substring(tuple.indexOf(',')+1);
-                    end = (15-s.length())>>1;
-                    for (int i=0;i<end;i++){
-                        System.out.print(' ');
-                    }
-                    System.out.print(s);
-                    
-                    end=end-1*((s.length()%2==1)?1:0);
-                    for (int i=0;i<end;i++){
-                        System.out.print(' ');
-                    }
-                    System.out.print('|');
-                    printfinal=false;
-                    break;
+            end=(15-value.length())>>1;
+            for (int i=0;i<end;i++){
+                System.out.print(' ');
             }
+            System.out.print(value);
+
+            end=end-1*((value.length()%2==1)?1:0);
+            for (int i=0;i<end;i++){
+                System.out.print(' ');
+            }
+            System.out.print('|');
+            printfinal=false;
         }
-        
         
         if (printfinal)
             System.out.print('|');
         System.out.println();
+    }
+
+    private static void processQuery(String[] projectionList, Scanner objectIn, String[] sList) {
+        boolean done=false; //Tracks if we've gone through the entire file
+        String sTuple=objectIn.nextLine(); //First line in the file
+        String[] columns = sTuple.split(","); //Split the first line to get the column names
+        
+        //If buffer is empty, copy stuff into the buffer
+        if (buffer[0]==null){
+            objectIn=copyIntoBuffer(objectIn,columns);
+        }
+        
+        printBoxHeader(projectionList);
+    	
+        while (!done){
+            for (int i=0;i<bufferSize;i++){ //Check each line in the buffer and print the ones that pass the where condition
+                if (buffer[i]!=null && notChecked[i]  //If it's not null (in case the number of records<buffer size) and it's not been checked (in case remaining records<buffer size)
+                        && passesCheck(buffer[i],sList)){ //And it passes the where condition
+                    
+                    printBoxLine(projectionList,buffer[i]); //Print the appropriate columns
+                }
+                notChecked[i]=false;
+            }
+            
+            objectIn=copyIntoBuffer(objectIn,columns); //Copy the next set of records into the buffer
+            if (!objectIn.hasNext()){ //Check if we've finished with the file
+                done=true;
+            }
+    	}
+        printBoxFooter(projectionList);
+    }
+    /**
+     * Copies from a table into the buffer
+     * @param objectIn Scanner over the table object
+     * @param columns The names of the columns in the table
+     * @return 
+     */
+    private static Scanner copyIntoBuffer(Scanner objectIn,String[] columns) {
+        for (int j=0;j<bufferSize;j++){
+            try{
+                String sTuple = objectIn.nextLine();
+                String[] attributes = sTuple.split(","); //Split the tuple into its attributes/columns
+                TreeMap<String,String> tuple = new TreeMap(); //This will eventually go into the buffer
+                for (int i=0;i<columns.length;i++){ //For each column name
+                    //Put a key value pair of (column name, attribute) into the buffer.
+                    tuple.put(columns[i],attributes[i]);
+                }
+
+                buffer[j]=tuple;
+            }
+            catch (NoSuchElementException e){ //If the file is empty, stop trying to read from the file
+                break;
+            }
+        }
+        
+        //I don't think we need this return but it's not hurting anything, so whatever.
+        return objectIn;
     }
 }
