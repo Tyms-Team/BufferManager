@@ -33,7 +33,7 @@ public class BufferManager {
         Scanner objectIn=openFile(sList);
     	
     	sList = queryWhere(query);
-                
+        
         String[] projectionList = querySelect(query);
         
         processQuery(projectionList,objectIn,sList);
@@ -117,7 +117,11 @@ public class BufferManager {
     	
     	// Get string from 'from' up until where or ;
     	int i = theQuery.indexOf(';');
-    	theQuery = theQuery.substring(theQuery.indexOf("where")+5,i);
+        if (theQuery.indexOf("where")!=-1)
+            theQuery = theQuery.substring(theQuery.indexOf("where")+5,i);
+        else
+            return new String[0];
+        
     	
     	//System.out.println("theQuery = " + theQuery);
     	
@@ -247,7 +251,7 @@ public class BufferManager {
 	}
 
     public static boolean passesCheck(TreeMap<String,String> tuple,String[] checkRules){
-        boolean r=false;
+        boolean r=true;
         String lvalue=null;
         String op=null;
         String boolOp=null;
@@ -422,6 +426,10 @@ public class BufferManager {
         String sTuple=objectIn.nextLine(); //First line in the file
         String[] columns = sTuple.split(","); //Split the first line to get the column names
         
+        if (projectionList[1].equals("*")){
+            projectionList=columns;
+        }
+        
         //If buffer is empty, copy stuff into the buffer
         if (buffer[0]==null){
             objectIn=copyIntoBuffer(objectIn,columns);
@@ -432,7 +440,7 @@ public class BufferManager {
         while (!done){
             for (int i=0;i<bufferSize;i++){ //Check each line in the buffer and print the ones that pass the where condition
                 if (buffer[i]!=null && notChecked[i]  //If it's not null (in case the number of records<buffer size) and it's not been checked (in case remaining records<buffer size)
-                        && passesCheck(buffer[i],sList)){ //And it passes the where condition
+                        && passesCheck(buffer[i],sList) ){ //And it passes the where condition
                     
                     printBoxLine(projectionList,buffer[i]); //Print the appropriate columns
                 }
@@ -464,6 +472,7 @@ public class BufferManager {
                 }
 
                 buffer[j]=tuple;
+                notChecked[j]=true;
             }
             catch (NoSuchElementException e){ //If the file is empty, stop trying to read from the file
                 break;
