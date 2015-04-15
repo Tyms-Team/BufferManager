@@ -8,6 +8,8 @@ import java.io.FileWriter;
 import com.sun.xml.internal.ws.util.StringUtils;
 import java.util.NoSuchElementException;
 import java.util.TreeMap;
+import java.time.Instant;
+import java.time.Clock;
 
 /**
  *
@@ -19,10 +21,12 @@ public class BufferManager {
      * @param args the command line arguments
      */
     
-    private static int bufferCount=0;
+    private static int blockSize=0;
     private static int bufferSize=0;
     private static TreeMap[] buffer;
     private static boolean[] notChecked;
+    private static Instant[] timestamps;
+    private static int accessCount = 0;
     
     public static void main(String[] args){
         Scanner in=init(args);
@@ -55,6 +59,7 @@ public class BufferManager {
 	    		bufferSize=Integer.parseInt(args[0]); //Set buffer size. If args[0] is not an int, exit
                         buffer = new TreeMap[bufferSize];
                         notChecked = new boolean[bufferSize];
+                        timestamps = new Instant[bufferSize];
 	    		if (args.length==2)
 	    			in = new Scanner( new File(args[1]) ); //Create Scanner for file
 	    	}
@@ -440,7 +445,7 @@ public class BufferManager {
         while (!done){
             for (int i=0;i<bufferSize;i++){ //Check each line in the buffer and print the ones that pass the where condition
                 if (buffer[i]!=null && notChecked[i]  //If it's not null (in case the number of records<buffer size) and it's not been checked (in case remaining records<buffer size)
-                        && passesCheck(buffer[i],sList) ){ //And it passes the where condition
+                        && passesCheck(buffer[i],sList) && leastRecentlyUsed(i)){ //And it passes the where condition and is least recently used
                     
                     printBoxLine(projectionList,buffer[i]); //Print the appropriate columns
                 }
@@ -453,14 +458,33 @@ public class BufferManager {
             }
     	}
         printBoxFooter(projectionList);
+        System.out.println("Access Count: " + accessCount);
     }
-    /**
+    
+    private static boolean leastRecentlyUsed(int i) {
+		boolean used = true;
+    	if (timestamps[i] == null){
+    		used = true;
+    	}else{
+    		for(int j = 0; j < bufferSize; j++){
+    			if(j != i){
+    				if(timestamps[j] != null && timestamps[i].compareTo(timestamps[j]) > 0){
+    					used = false;
+    				}
+    			}
+    		}
+    	}
+    	return used;
+	}
+
+	/**
      * Copies from a table into the buffer
      * @param objectIn Scanner over the table object
      * @param columns The names of the columns in the table
      * @return 
      */
     private static Scanner copyIntoBuffer(Scanner objectIn,String[] columns) {
+    	accessCount++;
         for (int j=0;j<bufferSize;j++){
             try{
                 String sTuple = objectIn.nextLine();
@@ -470,9 +494,9 @@ public class BufferManager {
                     //Put a key value pair of (column name, attribute) into the buffer.
                     tuple.put(columns[i],attributes[i]);
                 }
-
                 buffer[j]=tuple;
                 notChecked[j]=true;
+                timestamps[j]= Instant.now();
             }
             catch (NoSuchElementException e){ //If the file is empty, stop trying to read from the file
                 break;
