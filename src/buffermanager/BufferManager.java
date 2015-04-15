@@ -7,6 +7,7 @@ import java.io.FileWriter;
 
 import com.sun.xml.internal.ws.util.StringUtils;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.TreeMap;
 
 /**
@@ -19,7 +20,7 @@ public class BufferManager {
      * @param args the command line arguments
      */
     
-    private static int bufferCount=0;
+    private static int blockSize=0;
     private static int bufferSize=0;
     private static TreeMap[] buffer;
     private static boolean[] notChecked;
@@ -48,26 +49,30 @@ public class BufferManager {
     	Scanner in = new Scanner(System.in);
         
     	try{
-	    	if (args.length<1){ //No arguments
-	    		throw new Exception(); //Tell user usage and exit
-	    	}
-	    	else if (args.length<3){ //1 or 2 arguments
-	    		bufferSize=Integer.parseInt(args[0]); //Set buffer size. If args[0] is not an int, exit
-                        buffer = new TreeMap[bufferSize];
-                        notChecked = new boolean[bufferSize];
-	    		if (args.length==2)
-	    			in = new Scanner( new File(args[1]) ); //Create Scanner for file
-	    	}
+            if (args.length<2){ //No arguments
+                throw new Exception(); //Tell user usage and exit
+            }
+            else if (args.length<4){ //3 or 2 arguments
+                bufferSize=Integer.parseInt(args[0]); //Set buffer size. If args[0] is not an int, exit
+                blockSize=Integer.parseInt(args[1]);
+                buffer = new TreeMap[bufferSize];
+                notChecked = new boolean[bufferSize];
+                if (args.length==3)
+                    in = new Scanner( new File(args[2]) ); //Create Scanner for file
+            }
+            else{
+                throw new Exception();
+            }
 	    	
     	}
     	//Exit on errors
     	catch (FileNotFoundException e){
-    		System.err.printf("Could not find file %s.\n",args[1]);
-    		System.exit(1);
+            System.err.printf("Could not find file %s.\n",args[1]);
+            System.exit(1);
     	}
     	catch (Exception e){ //Tell usage and exit
-    		System.err.println("Usage: java BufferManager <buffer size> [query filename]");
-    		System.exit(1);
+            System.err.println("Usage: java BufferManager <buffer size> <block size> [query filename]");
+            System.exit(1);
     	}
     	return in;
     }
@@ -139,7 +144,7 @@ public class BufferManager {
      * @throws FileNotFoundException 
      */
     //@SuppressWarnings("resource")
-	public static Scanner openFile(String[] fromString){
+    public static Scanner openFile(String[] fromString){
     	Scanner r = null; //Return Scanner
     	int state = 0;
     	Scanner s = null;
@@ -454,6 +459,7 @@ public class BufferManager {
     	}
         printBoxFooter(projectionList);
     }
+    
     /**
      * Copies from a table into the buffer
      * @param objectIn Scanner over the table object
@@ -461,7 +467,8 @@ public class BufferManager {
      * @return 
      */
     private static Scanner copyIntoBuffer(Scanner objectIn,String[] columns) {
-        for (int j=0;j<bufferSize;j++){
+        //accessCount++;
+        for (int j=0;j<blockSize;j++){
             try{
                 String sTuple = objectIn.nextLine();
                 String[] attributes = sTuple.split(","); //Split the tuple into its attributes/columns
@@ -470,9 +477,15 @@ public class BufferManager {
                     //Put a key value pair of (column name, attribute) into the buffer.
                     tuple.put(columns[i],attributes[i]);
                 }
-
-                buffer[j]=tuple;
-                notChecked[j]=true;
+                
+                Random rand = new Random();
+                int i;
+                do{
+                    i=rand.nextInt(bufferSize);
+                } while (notChecked[i]);
+                
+                buffer[i]=tuple;
+                notChecked[i]=true;
             }
             catch (NoSuchElementException e){ //If the file is empty, stop trying to read from the file
                 break;
